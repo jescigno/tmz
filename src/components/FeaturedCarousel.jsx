@@ -20,7 +20,7 @@ const featuredItems = [
   {
     id: 3,
     image: '/featured-card-3.png',
-    title: 'DIRECTV Satellite + Device Sales Guide LDC',
+    title: 'DIRECTV Mass Campaign Banner Ad Option 1',
     tag: 'CREATIVE',
     imageMode: 'fullHeight',
     imageBg: '#D5D9DF',
@@ -36,7 +36,7 @@ const featuredItems = [
   {
     id: 5,
     image: '/featured-card-5.png',
-    title: 'Summer Promo 2025',
+    title: 'eE Spanish DIRECTV Satellite + Device Sales Sheet',
     tag: 'CREATIVE',
     fillContainer: true,
   },
