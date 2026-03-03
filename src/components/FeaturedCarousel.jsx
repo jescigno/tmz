@@ -8,6 +8,7 @@ const featuredItems = [
     title: 'Superior Grocers #126 (06) June 2025',
     tag: 'EVENT',
     fillContainer: true,
+    buttonText: 'BOOK EVENT',
   },
   {
     id: 2,
@@ -30,6 +31,7 @@ const featuredItems = [
     title: 'Paid Social Media Campaign',
     tag: 'MEDIA',
     fillContainer: true,
+    buttonText: 'CREATE MEDIA',
   },
   {
     id: 5,
@@ -46,53 +48,84 @@ export default function FeaturedCarousel() {
   const scrollRef = useRef(null)
   const cardRef = useRef(null)
   const isJumpingRef = useRef(false)
+  const scrollTimeoutRef = useRef(null)
 
   useEffect(() => {
-    const el = scrollRef.current
-    if (!el) return
+    const viewport = scrollRef.current
+    if (!viewport) return
+
+    const updateCardSize = () => {
+      const carousel = viewport.firstElementChild
+      if (!carousel) return
+      const width = viewport.clientWidth
+      const paddingX = parseFloat(getComputedStyle(carousel).paddingLeft) || 24
+      const gap = parseFloat(getComputedStyle(carousel).gap) || 20
+      const cardWidth = Math.max(0, Math.floor((width - 2 * paddingX - 3 * gap) / 4))
+      viewport.style.setProperty('--card-width', `${cardWidth}px`)
+    }
 
     const setInitialPosition = () => {
-      const originalScrollBehavior = el.style.scrollBehavior
-      el.style.scrollBehavior = 'auto'
-      el.scrollLeft = el.scrollWidth / 3
-      el.style.scrollBehavior = originalScrollBehavior
+      const carousel = viewport.firstElementChild
+      const card = cardRef.current || carousel?.firstElementChild
+      if (!card || !carousel) return
+      const cardWidth = card.offsetWidth
+      const gap = parseFloat(getComputedStyle(carousel).gap) || 20
+      const paddingX = parseFloat(getComputedStyle(carousel).paddingLeft) || 24
+      const setWidth = 5 * cardWidth + 4 * gap
+      viewport.style.scrollBehavior = 'auto'
+      viewport.scrollLeft = paddingX + setWidth
+      viewport.style.scrollBehavior = ''
     }
 
-    setInitialPosition()
-
-    const handleResize = () => {
-      setInitialPosition()
-    }
-    window.addEventListener('resize', handleResize)
-
-    const preventWheelScroll = (e) => {
-      e.preventDefault()
-    }
-
-    el.addEventListener('wheel', preventWheelScroll, { passive: false })
-
-    const handleScroll = () => {
+    const checkAndJump = () => {
       if (isJumpingRef.current) return
-
-      const { scrollLeft, scrollWidth, clientWidth } = el
-      const setWidth = scrollWidth / 3
-
-      if (scrollLeft < setWidth - clientWidth) {
+      const carousel = viewport.firstElementChild
+      const card = cardRef.current || carousel?.firstElementChild
+      if (!card || !carousel) return
+      const { scrollLeft, clientWidth } = viewport
+      const cardWidth = card.offsetWidth
+      const gap = parseFloat(getComputedStyle(carousel).gap) || 20
+      const paddingX = parseFloat(getComputedStyle(carousel).paddingLeft) || 24
+      const setWidth = 5 * cardWidth + 4 * gap
+      const middleSetStart = paddingX + setWidth - clientWidth
+      const middleSetEnd = paddingX + 2 * setWidth - clientWidth
+      if (scrollLeft < middleSetStart) {
         isJumpingRef.current = true
-        el.scrollLeft += setWidth
+        viewport.style.scrollBehavior = 'auto'
+        viewport.scrollLeft += setWidth
+        viewport.style.scrollBehavior = ''
         requestAnimationFrame(() => { isJumpingRef.current = false })
-      } else if (scrollLeft > setWidth * 2) {
+      } else if (scrollLeft > middleSetEnd) {
         isJumpingRef.current = true
-        el.scrollLeft -= setWidth
+        viewport.style.scrollBehavior = 'auto'
+        viewport.scrollLeft -= setWidth
+        viewport.style.scrollBehavior = ''
         requestAnimationFrame(() => { isJumpingRef.current = false })
       }
     }
 
-    el.addEventListener('scroll', handleScroll, { passive: true })
+    updateCardSize()
+    const resizeObserver = new ResizeObserver(() => {
+      updateCardSize()
+      requestAnimationFrame(setInitialPosition)
+    })
+    resizeObserver.observe(viewport)
+    requestAnimationFrame(setInitialPosition)
+
+    const handleScroll = () => {
+      clearTimeout(scrollTimeoutRef.current)
+      scrollTimeoutRef.current = setTimeout(checkAndJump, 150)
+    }
+
+    const preventWheel = (e) => e.preventDefault()
+    viewport.addEventListener('scroll', handleScroll, { passive: true })
+    viewport.addEventListener('wheel', preventWheel, { passive: false })
+
     return () => {
-      window.removeEventListener('resize', handleResize)
-      el.removeEventListener('scroll', handleScroll)
-      el.removeEventListener('wheel', preventWheelScroll)
+      clearTimeout(scrollTimeoutRef.current)
+      resizeObserver.disconnect()
+      viewport.removeEventListener('scroll', handleScroll)
+      viewport.removeEventListener('wheel', preventWheel)
     }
   }, [])
 
@@ -102,7 +135,7 @@ export default function FeaturedCarousel() {
     const card = cardRef.current || carousel?.firstElementChild
     if (!viewport || !card) return
     const cardWidth = card.offsetWidth
-    const gap = parseFloat(getComputedStyle(carousel).gap) || 24
+    const gap = parseFloat(getComputedStyle(carousel).gap) || 20
     const scrollAmount = cardWidth + gap
     viewport.scrollBy({ left: direction * scrollAmount, behavior: 'smooth' })
   }
@@ -124,6 +157,8 @@ export default function FeaturedCarousel() {
                   }}
                 />
               </div>
+              <div className="featured-card-image-overlay" />
+              <span className="featured-card-personalize">{item.buttonText || 'PERSONALIZE'}</span>
               <img src={item.image} alt={item.title} className="sr-only" />
             </div>
             <div className="featured-card-content">
